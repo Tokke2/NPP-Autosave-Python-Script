@@ -1,6 +1,10 @@
 📁 NPP Autosave
 Intelligent autosave plugin for Notepad++ that automatically saves your work.
 
+Version
+License
+Python
+
 ✨ Features
 Feature	Description
 💾 Smart Saving	Saves active tab 10 seconds after you stop typing
@@ -13,23 +17,22 @@ Feature	Description
 📥 Installation
 Step 1: Install PythonScript Plugin
 Open Notepad++
-Go to: Plugins → Plugins Admin
-Search: PythonScript
+Go to Plugins → Plugins Admin
+Search for PythonScript
 Click Install
 Restart Notepad++
 Step 2: Download Script
-Download autosave.py from:
+Download autosave.py from Releases
 
-https://github.com/Tokke2/npp-autosave/releases
+Place it in:
 
-Place it here:
+text
 
-%APPDATA%\Notepad++\plugins\config\PythonScript\scripts\autosave.py
-
+%APPDATA%\Notepad++\plugins\config\PythonScript\scripts\
 Step 3: Enable Autostart
-Go to: Plugins → PythonScript → Configuration
-Find: autosave.py in the list
-Set Initialisation to: ATSTARTUP
+Go to Plugins → PythonScript → Configuration
+Find autosave.py in the list
+Set Initialisation to ATSTARTUP
 Click OK
 Restart Notepad++
 Step 4: Verify Installation
@@ -37,42 +40,44 @@ Open console: Plugins → PythonScript → Show Console
 
 You should see:
 
+text
+
 ════════════════════════════════════════════════════════════
 NPP Autosave v1.2.0 loaded
 © 2026 Rickard Längkvist
 ════════════════════════════════════════════════════════════
-Folder: C:\Users\YourName\Documents\NPP
-Idle time: 10s (active tab)
-Interval: 300s / 5min (all tabs)
+Folder:       C:\Users\YourName\Documents\NPP
+Idle time:    10s (active tab)
+Interval:     300s / 5min (all tabs)
 ════════════════════════════════════════════════════════════
-
 📖 How It Works
 Save Logic
-┌─────────────────────────────────────────────────┐
-│ FILE SAVE DECISION │
-├─────────────────────────────────────────────────┤
-│ │
-│ Is file already saved to disk? │
-│ │
-│ YES NO │
-│ │ │ │
-│ ▼ ▼ │
-│ ┌───────────┐ ┌─────────────┐ │
-│ │ Save to │ │ Save to │ │
-│ │ ORIGINAL │ │ NPP folder │ │
-│ │ location │ │ Line 1 = │ │
-│ │ │ │ filename │ │
-│ └───────────┘ └─────────────┘ │
-│ │ │ │
-│ └──────────┬─────────────┘ │
-│ ▼ │
-│ ┌─────────────┐ │
-│ │ Create │ │
-│ │ backup copy │ │
-│ └─────────────┘ │
-│ │
-└─────────────────────────────────────────────────┘
+text
 
+┌─────────────────────────────────────────────────┐
+│            FILE SAVE DECISION                   │
+├─────────────────────────────────────────────────┤
+│                                                 │
+│   Is file already saved to disk?                │
+│                                                 │
+│        YES                      NO              │
+│         │                        │              │
+│         ▼                        ▼              │
+│   ┌───────────┐          ┌─────────────┐       │
+│   │ Save to   │          │ Save to     │       │
+│   │ ORIGINAL  │          │ NPP folder  │       │
+│   │ location  │          │ Line 1 =    │       │
+│   │           │          │ filename    │       │
+│   └───────────┘          └─────────────┘       │
+│         │                        │              │
+│         └──────────┬─────────────┘              │
+│                    ▼                            │
+│            ┌─────────────┐                      │
+│            │ Create      │                      │
+│            │ backup copy │                      │
+│            └─────────────┘                      │
+│                                                 │
+└─────────────────────────────────────────────────┘
 Two Save Modes
 Mode	Trigger	Saves	Timing
 Idle	Stop typing	Active tab	10 seconds
@@ -83,57 +88,59 @@ Open new tab (Ctrl+N)
 Type on line 1: My Notes
 Type content below
 Stop typing, wait 10 seconds
-File saved as: My Notes_2026-03-05.txt
+✅ File saved as: My Notes_2026-03-05.txt
 Example 2: Existing File
-Open: C:\Projects\readme.txt
+Open C:\Projects\readme.txt
 Make changes
 Stop typing, wait 10 seconds
-File saved to: C:\Projects\readme.txt (same location)
-Backup created in: ~/Documents/NPP/_backup/
+✅ File saved to C:\Projects\readme.txt (same location)
+✅ Backup created in ~/Documents/NPP/_backup/
 📂 Folder Structure
-C:\Users\YourName\Documents\NPP
+text
+
+C:\Users\YourName\Documents\NPP\
 │
-├── index.html ← Open in browser to view files
-├── config.txt ← Settings
-├── autosave.log ← Activity log
+├── index.html                    ← Open in browser to view files
+├── config.txt                    ← Settings
+├── autosave.log                  ← Activity log
 │
-├── My Notes_2026-03-05.txt ← Saved documents
+├── My Notes_2026-03-05.txt       ← Saved documents
 ├── Todo List_2026-03-05.txt
 │
-├── _backup/ ← Recent backups (0-30 days)
-│ ├── My Notes_2026-03-05_143022.txt
-│ └── My Notes_2026-03-05_150133.txt
+├── _backup/                      ← Recent backups (0-30 days)
+│   ├── My Notes_2026-03-05_143022.txt
+│   └── My Notes_2026-03-05_150133.txt
 │
-├── _old/ ← Archived backups (30+ days)
-│ └── My Notes_2026-02-01_120000.txt
+├── _old/                         ← Archived backups (30+ days)
+│   └── My Notes_2026-02-01_120000.txt
 │
 └── _meta/
-└── stats.json ← Statistics data
-
+    └── stats.json                ← Statistics data
 ⚙️ Configuration
-Edit: C:\Users\YourName\Documents\NPP\config.txt
+Edit config.txt in your NPP folder:
 
-Seconds after typing stops to save active tab
+ini
+
+# Seconds after typing stops to save active tab
 idle_time = 10
 
-Seconds between saving ALL tabs (300 = 5 minutes)
+# Seconds between saving ALL tabs (300 = 5 minutes)
 interval_time = 300
 
-Move backups older than X days to _old folder
+# Move backups older than X days to _old folder
 max_backup_age_days = 30
 
-Max backups per file in _backup folder
+# Max backups per file in _backup folder
 max_backups_per_file = 50
 
-Show popup when saving (true/false)
+# Show popup when saving (true/false)
 show_notifications = false
 
-Show status in statusbar (true/false)
+# Show status in statusbar (true/false)
 show_statusbar = true
 
-Theme for index.html (dark/light)
+# Theme for index.html (dark/light)
 theme = dark
-
 🎯 Console Commands
 Open console: Plugins → PythonScript → Show Console
 
@@ -146,15 +153,13 @@ open_folder()	Open NPP folder in Explorer
 _autosaver.stop()	Stop autosave
 _autosaver.start()	Restart autosave
 📊 HTML Index
-Open: C:\Users\YourName\Documents\NPP\index.html
+Open index.html in your browser to access:
 
-Features:
-
-🔍 Search files instantly
-🌓 Dark/Light theme toggle
-🔗 Click to open any file
-📈 Statistics dashboard
-📁 Filter by folder
+🔍 Search - Find files instantly
+🌓 Theme Toggle - Dark/Light mode
+🔗 Quick Links - Click to open any file
+📈 Statistics - View save activity
+📁 Sections - Documents / Backups / Archive
 🐛 Troubleshooting
 Script not loading
 Check: Plugins → PythonScript → Configuration
@@ -162,50 +167,63 @@ Verify autosave.py is listed
 Verify ATSTARTUP is selected
 Restart Notepad++
 Files not saving
-Check permissions on folder:
+Check folder permissions:
+
+text
 
 C:\Users\YourName\Documents\NPP\
+Find your files
+Run in console:
 
-Where are my files?
-Run command in console:
+Python
 
 open_folder()
-
 📜 Changelog
 v1.2.0
-Dual save mode (original location vs NPP folder)
-Interval save for all tabs every 5 minutes
-Improved file detection
-Dynamic copyright year
+✅ Dual save mode (original location vs NPP folder)
+✅ Interval save for all tabs every 5 minutes
+✅ Improved file detection
+✅ Dynamic copyright year
 v1.1.0
-Idle-based autosave
-HTML index with search
-Statistics tracking
-Dark/Light theme
-Backup rotation
+✅ Idle-based autosave
+✅ HTML index with search
+✅ Statistics tracking
+✅ Dark/Light theme
+✅ Backup rotation
 v1.0.0
-Initial release
+✅ Initial release
 📄 License
+This project is licensed under the MIT License.
+
+text
+
 MIT License
 
 Copyright (c) 2026 Rickard Längkvist
 
-Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
-
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software.
 👤 Author
 Rickard Längkvist
 
-GitHub: https://github.com/Tokke2
-
+GitHub: @Tokke2
 🔗 Links
-Repository: https://github.com/Tokke2/npp-autosave
+📦 Repository
+🐛 Issues
+📥 Releases
+⭐ Support
+If you find this project useful, please give it a star!
 
-Issues: https://github.com/Tokke2/npp-autosave/issues
+Star
 
-Releases: https://github.com/Tokke2/npp-autosave/releases
+🤝 Contributing
+Contributions are welcome!
 
-⭐ Star this repo if you find it useful!
+Fork the project
+Create your feature branch (git checkout -b feature/AmazingFeature)
+Commit your changes (git commit -m 'Add some AmazingFeature')
+Push to the branch (git push origin feature/AmazingFeature)
+Open a Pull Request
