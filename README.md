@@ -1,317 +1,211 @@
 📁 NPP Autosave
-Intelligent autosave plugin for Notepad++ that automatically saves your work after inactivity.
-
-Version
-License
-Python
+Intelligent autosave plugin for Notepad++ that automatically saves your work.
 
 ✨ Features
-💾 Smart Saving - Saves active tab 10 seconds after you stop typing
-🔄 Interval Backup - Saves ALL tabs every 5 minutes
-📁 Dual Save Mode - Already saved files update in place, new files go to NPP folder
-📊 Statistics - Tracks save count, file size, and activity
-🔍 HTML Index - Searchable file overview with dark/light theme
-📦 Backup Rotation - Automatic archiving of old backups (30 days)
-⚙️ Configurable - Easy settings via config file
-📈 Statusbar - Shows save status directly in Notepad++
+Feature	Description
+💾 Smart Saving	Saves active tab 10 seconds after you stop typing
+🔄 Interval Backup	Saves ALL tabs every 5 minutes
+📁 Dual Save Mode	Existing files → original location, New files → NPP folder
+📊 Statistics	Tracks saves, file sizes, and daily activity
+🔍 HTML Index	Searchable file browser with dark/light theme
+📦 Backup Rotation	Auto-archive old backups after 30 days
+⚙️ Configurable	Simple config.txt for all settings
 📥 Installation
 Step 1: Install PythonScript Plugin
 Open Notepad++
-Go to Plugins → Plugins Admin
-Search for "PythonScript"
-Install and restart Notepad++
-Step 2: Install NPP Autosave
-Option A: Manual Installation
-
-Download autosave.py
-Place in: %APPDATA%\Notepad++\plugins\config\PythonScript\scripts\
-Open Plugins → PythonScript → Configuration
-Select ATSTARTUP for autosave.py
+Go to: Plugins → Plugins Admin
+Search: PythonScript
+Click Install
 Restart Notepad++
-Option B: Quick Install Script (coming soon)
+Step 2: Download Script
+Download autosave.py from:
 
-Bash
+https://github.com/Tokke2/npp-autosave/releases
 
-python install.py
-📖 Usage
-How Files Are Saved
-NPP Autosave uses intelligent dual-mode saving:
+Place it here:
 
-text
+%APPDATA%\Notepad++\plugins\config\PythonScript\scripts\autosave.py
 
-┌─────────────────────────────────────────────────────────────┐
-│                    FILE SAVE LOGIC                          │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│   Is the file already saved to disk?                        │
-│                                                             │
-│   ┌──────────┐                    ┌──────────┐             │
-│   │   YES    │                    │    NO    │             │
-│   │ (exists) │                    │ (new tab)│             │
-│   └────┬─────┘                    └────┬─────┘             │
-│        │                               │                    │
-│        ▼                               ▼                    │
-│   ┌─────────────────┐      ┌─────────────────────┐         │
-│   │ Save to SAME    │      │ Save to NPP folder  │         │
-│   │ location        │      │ Filename = Line 1   │         │
-│   │                 │      │ + date stamp        │         │
-│   │ notepad.save()  │      │                     │         │
-│   └─────────────────┘      └─────────────────────┘         │
-│        │                               │                    │
-│        └──────────┬────────────────────┘                    │
-│                   ▼                                         │
-│          ┌────────────────┐                                │
-│          │ Create backup  │                                │
-│          │ in _backup/    │                                │
-│          └────────────────┘                                │
-│                                                             │
-└─────────────────────────────────────────────────────────────┘
-Examples
-Scenario 1: New Document
-
-Create new tab in Notepad++
-Type on line 1: Shopping List
-Type your content below
-Wait 10 seconds → Automatically saved as:
-text
-
-~/Documents/NPP/Shopping List_2026-03-05.txt
-Scenario 2: Existing File
-
-Open C:\Projects\readme.txt
-Make changes
-Wait 10 seconds → Saved to C:\Projects\readme.txt (same location)
-Backup created in ~/Documents/NPP/_backup/
-Scenario 3: Multiple Tabs
-
-You have 5 tabs open (mix of new and saved files)
-Every 5 minutes → ALL tabs are saved automatically
-No need to manually save each one
-⚙️ Configuration
-Edit ~/Documents/NPP/config.txt:
-
-ini
-
-# Seconds to wait after typing stops (saves active tab)
-idle_time = 10
-
-# Seconds between saving ALL tabs (300 = 5 minutes)
-interval_time = 300
-
-# Move backups older than X days to _old folder
-max_backup_age_days = 30
-
-# Maximum number of backups per file in _backup
-max_backups_per_file = 50
-
-# Show popup notification when saving (true/false)
-show_notifications = false
-
-# Show save status in statusbar (true/false)
-show_statusbar = true
-
-# Theme for index.html (dark/light)
-theme = dark
-📂 File Structure
-text
-
-~/Documents/NPP/
-├── index.html                    ← Click to view all files in browser
-├── config.txt                    ← Settings
-├── autosave.log                  ← Activity log
-├── Shopping List_2026-03-05.txt  ← Saved files (from new tabs)
-├── Notes_2026-03-05.txt
-├── _backup/                      ← Recent backups (last 30 days)
-│   ├── Shopping List_2026-03-05_143022.txt
-│   ├── Shopping List_2026-03-05_150133.txt
-│   └── Notes_2026-03-05_141555.txt
-├── _old/                         ← Archived backups (30+ days old)
-│   └── Shopping List_2026-02-01_120000.txt
-└── _meta/
-    └── stats.json                ← Statistics
-🎯 Console Commands
-Run in Plugins → PythonScript → Show Console:
-
-Python
-
-# Save active tab immediately
-manual_save()
-
-# Save all open tabs immediately
-manual_save_all()
-
-# Open index in web browser
-open_index()
-
-# Open config in Notepad++
-open_config()
-
-# Open NPP folder in Windows Explorer
-open_folder()
-
-# Stop autosave (if needed)
-_autosaver.stop()
-
-# Restart autosave
-_autosaver.start()
-🔧 How It Works
-Two Save Modes
-Mode	Trigger	What Gets Saved	When
-Idle Save	Stop typing	Active tab only	10s after last keypress
-Interval Save	Timer	ALL open tabs	Every 5 minutes
-Save Decision Tree
-text
-
-┌─────────────────────────────────────────────────────────────┐
-│ User stops typing                                           │
-└──────────────────────┬──────────────────────────────────────┘
-                       ▼
-           ⏱️ Wait 10 seconds (idle_time)
-                       │
-                       ▼
-           ┌──────────────────────┐
-           │ File already saved?  │
-           └──────┬───────────────┘
-                  │
-         ┌────────┴────────┐
-         ▼                 ▼
-    ┌────────┐        ┌─────────┐
-    │  YES   │        │   NO    │
-    └───┬────┘        └────┬────┘
-        │                  │
-        ▼                  ▼
-  Update at          Save to NPP/
-  original           (line 1 as
-  location           filename)
-        │                  │
-        └────────┬─────────┘
-                 ▼
-         Create backup copy
-                 │
-                 ▼
-         Update statistics
-                 │
-                 ▼
-           ✅ Done!
-📊 Statistics Dashboard
-Open index.html to see:
-
-Total number of saves
-Files saved per day
-Total data saved
-Recent activity (last 7 days)
-Largest files
-Search and filter capabilities
-Features of index.html:
-🔍 Search - Find files instantly
-🌓 Dark/Light Mode - Toggle theme (preference saved)
-📱 Responsive - Works on any screen size
-🔗 Clickable Links - Open files directly from browser
-📈 Statistics - Visual overview of your activity
-🐛 Troubleshooting
-Script not starting automatically
-Check installation:
-
-text
-
-1. Plugins → PythonScript → Configuration
-2. Verify "autosave.py" is listed
-3. Ensure ATSTARTUP is checked
-4. Restart Notepad++
-Verify it's running:
-
-text
-
-Plugins → PythonScript → Show Console
+Step 3: Enable Autostart
+Go to: Plugins → PythonScript → Configuration
+Find: autosave.py in the list
+Set Initialisation to: ATSTARTUP
+Click OK
+Restart Notepad++
+Step 4: Verify Installation
+Open console: Plugins → PythonScript → Show Console
 
 You should see:
+
 ════════════════════════════════════════════════════════════
 NPP Autosave v1.2.0 loaded
 © 2026 Rickard Längkvist
 ════════════════════════════════════════════════════════════
+Folder: C:\Users\YourName\Documents\NPP
+Idle time: 10s (active tab)
+Interval: 300s / 5min (all tabs)
+════════════════════════════════════════════════════════════
+
+📖 How It Works
+Save Logic
+┌─────────────────────────────────────────────────┐
+│ FILE SAVE DECISION │
+├─────────────────────────────────────────────────┤
+│ │
+│ Is file already saved to disk? │
+│ │
+│ YES NO │
+│ │ │ │
+│ ▼ ▼ │
+│ ┌───────────┐ ┌─────────────┐ │
+│ │ Save to │ │ Save to │ │
+│ │ ORIGINAL │ │ NPP folder │ │
+│ │ location │ │ Line 1 = │ │
+│ │ │ │ filename │ │
+│ └───────────┘ └─────────────┘ │
+│ │ │ │
+│ └──────────┬─────────────┘ │
+│ ▼ │
+│ ┌─────────────┐ │
+│ │ Create │ │
+│ │ backup copy │ │
+│ └─────────────┘ │
+│ │
+└─────────────────────────────────────────────────┘
+
+Two Save Modes
+Mode	Trigger	Saves	Timing
+Idle	Stop typing	Active tab	10 seconds
+Interval	Timer	All tabs	Every 5 minutes
+💡 Usage Examples
+Example 1: New Document
+Open new tab (Ctrl+N)
+Type on line 1: My Notes
+Type content below
+Stop typing, wait 10 seconds
+File saved as: My Notes_2026-03-05.txt
+Example 2: Existing File
+Open: C:\Projects\readme.txt
+Make changes
+Stop typing, wait 10 seconds
+File saved to: C:\Projects\readme.txt (same location)
+Backup created in: ~/Documents/NPP/_backup/
+📂 Folder Structure
+C:\Users\YourName\Documents\NPP
+│
+├── index.html ← Open in browser to view files
+├── config.txt ← Settings
+├── autosave.log ← Activity log
+│
+├── My Notes_2026-03-05.txt ← Saved documents
+├── Todo List_2026-03-05.txt
+│
+├── _backup/ ← Recent backups (0-30 days)
+│ ├── My Notes_2026-03-05_143022.txt
+│ └── My Notes_2026-03-05_150133.txt
+│
+├── _old/ ← Archived backups (30+ days)
+│ └── My Notes_2026-02-01_120000.txt
+│
+└── _meta/
+└── stats.json ← Statistics data
+
+⚙️ Configuration
+Edit: C:\Users\YourName\Documents\NPP\config.txt
+
+Seconds after typing stops to save active tab
+idle_time = 10
+
+Seconds between saving ALL tabs (300 = 5 minutes)
+interval_time = 300
+
+Move backups older than X days to _old folder
+max_backup_age_days = 30
+
+Max backups per file in _backup folder
+max_backups_per_file = 50
+
+Show popup when saving (true/false)
+show_notifications = false
+
+Show status in statusbar (true/false)
+show_statusbar = true
+
+Theme for index.html (dark/light)
+theme = dark
+
+🎯 Console Commands
+Open console: Plugins → PythonScript → Show Console
+
+Command	Description
+manual_save()	Save active tab now
+manual_save_all()	Save all tabs now
+open_index()	Open index in browser
+open_config()	Open config file
+open_folder()	Open NPP folder in Explorer
+_autosaver.stop()	Stop autosave
+_autosaver.start()	Restart autosave
+📊 HTML Index
+Open: C:\Users\YourName\Documents\NPP\index.html
+
+Features:
+
+🔍 Search files instantly
+🌓 Dark/Light theme toggle
+🔗 Click to open any file
+📈 Statistics dashboard
+📁 Filter by folder
+🐛 Troubleshooting
+Script not loading
+Check: Plugins → PythonScript → Configuration
+Verify autosave.py is listed
+Verify ATSTARTUP is selected
+Restart Notepad++
 Files not saving
-Check console for errors:
+Check permissions on folder:
 
-text
+C:\Users\YourName\Documents\NPP\
 
-Plugins → PythonScript → Show Console
-Common issues:
-
-❌ PythonScript plugin not installed → Install from Plugins Admin
-❌ Script in wrong folder → Must be in PythonScript\scripts\
-❌ Permission issues → Ensure ~/Documents/NPP is writable
 Where are my files?
-Default location:
+Run command in console:
 
-text
+open_folder()
 
-Windows: C:\Users\YourName\Documents\NPP\
-Quick access:
-Run in console: open_folder()
-
-🤝 Contributing
-Contributions are welcome!
-
-Fork the project
-Create a feature branch: git checkout -b feature/amazing-feature
-Commit your changes: git commit -m 'Add amazing feature'
-Push to branch: git push origin feature/amazing-feature
-Open a Pull Request
 📜 Changelog
-v1.2.0 (2026-03-05)
-✅ Dual save mode (original location vs NPP folder)
-✅ Interval save for all tabs (every 5 minutes)
-✅ Improved file detection logic
-✅ Dynamic copyright
-v1.1.0 (2026-03-05)
-✅ Idle-based autosave (10s after typing stops)
-✅ HTML index with search
-✅ Statistics tracking
-✅ Dark/Light theme toggle
-✅ Backup rotation
-v1.0.0 (2026-03-04)
-✅ Initial release
+v1.2.0
+Dual save mode (original location vs NPP folder)
+Interval save for all tabs every 5 minutes
+Improved file detection
+Dynamic copyright year
+v1.1.0
+Idle-based autosave
+HTML index with search
+Statistics tracking
+Dark/Light theme
+Backup rotation
+v1.0.0
+Initial release
 📄 License
-MIT License - Free to use, modify, and distribute.
+MIT License
 
-See LICENSE for details.
+Copyright (c) 2026 Rickard Längkvist
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
 
 👤 Author
 Rickard Längkvist
 
-GitHub: @rickard-langkvist
-🙏 Acknowledgments
-PythonScript plugin by Dave Brotherstone
-Notepad++ by Don Ho
-Inspired by the need for reliable autosave in text editing
-💡 Tips & Tricks
-Best Practices
-Use descriptive line 1 - This becomes the filename for new documents
+GitHub: https://github.com/Tokke2
 
-text
+🔗 Links
+Repository: https://github.com/Tokke2/npp-autosave
 
-Good: "Project Meeting Notes"
-Bad:  "asdfjkl"
-Check the HTML index - Quickly find old files and backups
+Issues: https://github.com/Tokke2/npp-autosave/issues
 
-Adjust idle_time - If 10s is too fast/slow, edit config.txt
+Releases: https://github.com/Tokke2/npp-autosave/releases
 
-Review backups periodically - Check _backup/ for recovery needs
-
-Enable notifications - Set show_notifications = true for confirmation
-
-Advanced Usage
-Custom save locations:
-The script saves existing files in their original location, but new files always go to ~/Documents/NPP/. If you want a different location, modify BASE_DIR in the script.
-
-Integration with version control:
-Keep ~/Documents/NPP/ in a Git repository for automatic version history of your notes and documents.
-
-Network drives:
-Works with network drives if already saved there. New files still go to local NPP folder.
-
-⭐ Like this project? Give it a star!
-
-🐛 Found a bug? Open an issue
-
-💬 Questions? Start a discussion
+⭐ Star this repo if you find it useful!
