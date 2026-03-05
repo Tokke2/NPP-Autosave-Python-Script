@@ -1,26 +1,29 @@
 # -*- coding: utf-8 -*-
 """
 ╔══════════════════════════════════════════════════════════════════╗
-║                     NPP AUTOSAVE v1.0.0                          ║
+║                     NPP AUTOSAVE v1.2.0                          ║
 ║         Intelligent autosave for Notepad++                       ║
 ╠══════════════════════════════════════════════════════════════════╣
-║  Author:  Tadega                                                 ║
+║  Author:  Rickard Längkvist                                      ║
 ║  License: MIT (free to use, modify and share)                    ║
+║  GitHub:  https://github.com/rickard-langkvist/npp-autosave      ║
+╠══════════════════════════════════════════════════════════════════╣
+║  FEATURES:                                                       ║
+║  - Saves active tab 10s after you stop typing                    ║
+║  - Saves ALL tabs every 5 minutes                                ║
+║  - Already saved files: saves to original location               ║
+║  - New files: saves to NPP folder with line 1 as filename        ║
 ╠══════════════════════════════════════════════════════════════════╣
 ║  INSTALLATION:                                                   ║
 ║  1. Save to: %APPDATA%/Notepad++/plugins/config/                 ║
 ║              PythonScript/scripts/autosave.py                    ║
 ║  2. Plugins > PythonScript > Configuration > ATSTARTUP           ║
 ║  3. Restart Notepad++                                            ║
-╠══════════════════════════════════════════════════════════════════╣
-║  USAGE:                                                          ║
-║  Line 1: Filename                                                ║
-║  Saves automatically after 10 seconds of inactivity              ║
 ╚══════════════════════════════════════════════════════════════════╝
 """
 
-__version__ = "1.0.0"
-__author__ = "Tadega"
+__version__ = "1.2.0"
+__author__ = u"Rickard Längkvist"
 __license__ = "MIT"
 
 from Npp import notepad, editor, console, NOTIFICATION, STATUSBARSECTION
@@ -47,6 +50,7 @@ STATS_FILE = os.path.join(META_DIR, "stats.json")
 
 DEFAULT_CONFIG = {
     "idle_time": 10,
+    "interval_time": 300,
     "max_backup_age_days": 30,
     "max_backups_per_file": 50,
     "show_notifications": False,
@@ -105,9 +109,12 @@ def create_default_config():
         with io.open(CONFIG_FILE, "w", encoding="utf-8") as f:
             f.write(u"# ══════════════════════════════════════════════════════════\n")
             f.write(u"# NPP Autosave Configuration v{}\n".format(__version__))
+            f.write(u"# © {} {}\n".format(datetime.now().year, __author__))
             f.write(u"# ══════════════════════════════════════════════════════════\n\n")
-            f.write(u"# Seconds to wait after last keypress before saving\n")
+            f.write(u"# Seconds after last keypress to save ACTIVE tab\n")
             f.write(u"idle_time = {}\n\n".format(DEFAULT_CONFIG["idle_time"]))
+            f.write(u"# Seconds between saving ALL tabs (300 = 5 minutes)\n")
+            f.write(u"interval_time = {}\n\n".format(DEFAULT_CONFIG["interval_time"]))
             f.write(u"# Move backups older than X days to _old folder\n")
             f.write(u"max_backup_age_days = {}\n\n".format(DEFAULT_CONFIG["max_backup_age_days"]))
             f.write(u"# Maximum number of backups per file\n")
@@ -162,6 +169,11 @@ def get_config_value(key, default=None):
 def get_idle_time():
     """Get idle time setting."""
     return max(1, get_config_value("idle_time", DEFAULT_CONFIG["idle_time"]))
+
+
+def get_interval_time():
+    """Get interval time setting."""
+    return max(60, get_config_value("interval_time", DEFAULT_CONFIG["interval_time"]))
 
 
 # ══════════════════════════════════════════════════════════════════
@@ -221,6 +233,24 @@ def get_document_name(text, index):
         return u"untitled_{}".format(index)
     
     return name
+
+
+def is_file_saved(filepath):
+    """Check if file is already saved to disk (not a new unsaved file)."""
+    if not filepath:
+        return False
+    
+    # "new 1", "new 2" etc are unsaved
+    basename = os.path.basename(filepath).lower()
+    if basename.startswith("new "):
+        try:
+            int(basename[4:])
+            return False
+        except ValueError:
+            pass
+    
+    # Check if file exists on disk
+    return os.path.exists(filepath)
 
 
 # ══════════════════════════════════════════════════════════════════
@@ -336,6 +366,22 @@ def limit_backups(name):
         log(u"Error limiting backups: {}".format(e), "ERROR")
 
 
+def create_backup(name, text):
+    """Create a backup copy of the file."""
+    try:
+        ts = datetime.now().strftime("%Y-%m-%d_%H%M%S")
+        backup_filename = u"{}_{}.txt".format(name, ts)
+        backup_path = os.path.join(BACKUP_DIR, backup_filename)
+        
+        with io.open(backup_path, "w", encoding="utf-8") as f:
+            f.write(text)
+        
+        limit_backups(name)
+        
+    except Exception as e:
+        log(u"Error creating backup: {}".format(e), "ERROR")
+
+
 # ══════════════════════════════════════════════════════════════════
 # FILE OPERATIONS
 # ══════════════════════════════════════════════════════════════════
@@ -408,7 +454,6 @@ def generate_index():
         total_size = sum(f["size"] for f in main_files + backup_files + old_files)
         now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         
-        # Calculate statistics
         cutoff_7days = time.time() - (7 * 86400)
         recent_files = [f for f in main_files if f["mtime"] > cutoff_7days]
         largest_file = max(main_files, key=lambda x: x["size"]) if main_files else None
@@ -428,8 +473,6 @@ def generate_index():
         
         with io.open(INDEX_FILE, "w", encoding="utf-8") as f:
             f.write(html)
-        
-        log(u"Index updated ({} files)".format(len(main_files) + len(backup_files) + len(old_files)))
         
     except Exception as e:
         log(u"Error generating index: {}".format(e), "ERROR")
@@ -453,6 +496,8 @@ def generate_html_content(main_files, backup_files, old_files, stats, total_size
                     <td class="date" title="{}">{}</td>
                 </tr>'''.format(f["name"].lower(), url, f["name"], size, date, ago)
         return rows
+    
+    current_year = datetime.now().year
     
     html = u'''<!DOCTYPE html>
 <html lang="sv">
@@ -784,7 +829,7 @@ def generate_html_content(main_files, backup_files, old_files, stats, total_size
 </html>'''.format(
         version=__version__,
         author=__author__,
-        year=datetime.now().year,
+        year=current_year,
         now=now,
         body_class=body_class,
         main_count=len(main_files),
@@ -810,14 +855,24 @@ def generate_html_content(main_files, backup_files, old_files, stats, total_size
 # ══════════════════════════════════════════════════════════════════
 # SAVE OPERATIONS
 # ══════════════════════════════════════════════════════════════════
-def save_current_buffer():
-    """Save current buffer."""
-    global last_save_time
+def save_buffer(buffer_id, index):
+    """Save a specific buffer."""
+    current_buffer = None
     
     try:
+        current_buffer = notepad.getCurrentBufferID()
+        
+        # Switch to target buffer
+        notepad.activateBufferID(buffer_id, 0)
+        
+        # Check if modified
         if not editor.getModify():
             return False
         
+        # Get current file path
+        filepath = notepad.getCurrentFilename()
+        
+        # Get text
         text = editor.getText()
         if not text:
             return False
@@ -825,42 +880,119 @@ def save_current_buffer():
         if isinstance(text, bytes):
             text = text.decode("utf-8", errors="replace")
         
-        buffer_id = notepad.getCurrentBufferID()
-        files = notepad.getFiles()
-        index = 0
-        for i, f in enumerate(files):
-            if len(f) >= 2 and f[1] == buffer_id:
-                index = i
-                break
+        # Check if file is already saved to disk
+        if is_file_saved(filepath):
+            # ═══ ALREADY SAVED FILE: Save to original location ═══
+            notepad.save()
+            
+            # Create backup
+            name = os.path.splitext(os.path.basename(filepath))[0]
+            create_backup(name, text)
+            
+            update_stats(os.path.basename(filepath), len(text))
+            log(u"Saved (original): {}".format(filepath))
+            
+        else:
+            # ═══ NEW FILE: Save to NPP folder using line 1 as name ═══
+            name = get_document_name(text, index)
+            
+            # Save main file
+            date_str = datetime.now().strftime("%Y-%m-%d")
+            filename = u"{}_{}.txt".format(name, date_str)
+            save_path = os.path.join(BASE_DIR, filename)
+            
+            with io.open(save_path, "w", encoding="utf-8") as f:
+                f.write(text)
+            
+            # Create backup
+            create_backup(name, text)
+            
+            # Mark as saved in editor
+            editor.setSavePoint()
+            
+            update_stats(filename, len(text))
+            log(u"Saved (new): {}".format(filename))
         
-        name = get_document_name(text, index)
+        return True
         
-        # Save main file
-        date_str = datetime.now().strftime("%Y-%m-%d")
-        filename = u"{}_{}.txt".format(name, date_str)
-        filepath = os.path.join(BASE_DIR, filename)
+    except Exception as e:
+        log(u"Error saving buffer {}: {}".format(index, e), "ERROR")
+        return False
         
-        with io.open(filepath, "w", encoding="utf-8") as f:
-            f.write(text)
+    finally:
+        # Switch back to original buffer
+        try:
+            if current_buffer is not None and current_buffer != buffer_id:
+                notepad.activateBufferID(current_buffer, 0)
+        except Exception:
+            pass
+
+
+def save_current_buffer():
+    """Save current/active buffer only."""
+    global last_save_time
+    
+    try:
+        if not editor.getModify():
+            return False
         
-        # Save backup
-        ts = datetime.now().strftime("%Y-%m-%d_%H%M%S")
-        backup_name = u"{}_{}.txt".format(name, ts)
-        backup_path = os.path.join(BACKUP_DIR, backup_name)
+        # Get current file path
+        filepath = notepad.getCurrentFilename()
         
-        with io.open(backup_path, "w", encoding="utf-8") as f:
-            f.write(text)
+        # Get text
+        text = editor.getText()
+        if not text:
+            return False
         
-        editor.setSavePoint()
-        update_stats(filename, len(text))
-        limit_backups(name)
+        if isinstance(text, bytes):
+            text = text.decode("utf-8", errors="replace")
         
-        last_save_time = datetime.now()
-        update_statusbar(u"✓ Sparad {}".format(last_save_time.strftime("%H:%M:%S")))
-        show_notification(u"Autosave", u"Sparad: {}".format(filename))
-        
-        log(u"Saved: {}".format(filename))
-        generate_index()
+        # Check if file is already saved to disk
+        if is_file_saved(filepath):
+            # ═══ ALREADY SAVED FILE: Save to original location ═══
+            notepad.save()
+            
+            # Create backup
+            name = os.path.splitext(os.path.basename(filepath))[0]
+            create_backup(name, text)
+            
+            update_stats(os.path.basename(filepath), len(text))
+            
+            last_save_time = datetime.now()
+            update_statusbar(u"✓ Sparad {}".format(last_save_time.strftime("%H:%M:%S")))
+            log(u"Saved (original): {}".format(filepath))
+            
+        else:
+            # ═══ NEW FILE: Save to NPP folder using line 1 as name ═══
+            buffer_id = notepad.getCurrentBufferID()
+            files = notepad.getFiles()
+            index = 0
+            for i, f in enumerate(files):
+                if len(f) >= 2 and f[1] == buffer_id:
+                    index = i
+                    break
+            
+            name = get_document_name(text, index)
+            
+            # Save main file
+            date_str = datetime.now().strftime("%Y-%m-%d")
+            filename = u"{}_{}.txt".format(name, date_str)
+            save_path = os.path.join(BASE_DIR, filename)
+            
+            with io.open(save_path, "w", encoding="utf-8") as f:
+                f.write(text)
+            
+            # Create backup
+            create_backup(name, text)
+            
+            # Mark as saved in editor
+            editor.setSavePoint()
+            
+            update_stats(filename, len(text))
+            
+            last_save_time = datetime.now()
+            update_statusbar(u"✓ Sparad {}".format(last_save_time.strftime("%H:%M:%S")))
+            log(u"Saved (new): {}".format(filename))
         
         return True
         
@@ -870,13 +1002,53 @@ def save_current_buffer():
         return False
 
 
+def save_all_buffers():
+    """Save ALL open buffers."""
+    global last_save_time
+    
+    try:
+        files = notepad.getFiles()
+        if not files:
+            return 0
+        
+        saved_count = 0
+        
+        for index, file_info in enumerate(files):
+            if len(file_info) >= 2:
+                buffer_id = file_info[1]
+                if save_buffer(buffer_id, index):
+                    saved_count += 1
+        
+        if saved_count > 0:
+            last_save_time = datetime.now()
+            update_statusbar(u"✓ Sparade {} flikar {}".format(saved_count, last_save_time.strftime("%H:%M:%S")))
+            log(u"Interval save: {} tabs".format(saved_count))
+            generate_index()
+        
+        return saved_count
+        
+    except Exception as e:
+        log(u"Error saving all buffers: {}".format(e), "ERROR")
+        return 0
+
+
 # ══════════════════════════════════════════════════════════════════
 # MANUAL COMMANDS
 # ══════════════════════════════════════════════════════════════════
 def manual_save():
-    """Manual save command."""
+    """Manual save command - saves current tab."""
     if save_current_buffer():
+        generate_index()
         notepad.messageBox(u"✓ Fil sparad!", u"NPP Autosave", 0)
+    else:
+        notepad.messageBox(u"Inget att spara", u"NPP Autosave", 0)
+
+
+def manual_save_all():
+    """Manual save all command - saves all tabs."""
+    count = save_all_buffers()
+    if count > 0:
+        notepad.messageBox(u"✓ {} flikar sparade!".format(count), u"NPP Autosave", 0)
     else:
         notepad.messageBox(u"Inget att spara", u"NPP Autosave", 0)
 
@@ -908,90 +1080,131 @@ def open_folder():
 
 
 # ══════════════════════════════════════════════════════════════════
-# IDLE-BASED AUTOSAVE
+# AUTOSAVER CLASS (DUAL MODE)
 # ══════════════════════════════════════════════════════════════════
-class IdleAutoSaver:
-    """Saves after X seconds of inactivity."""
+class AutoSaver:
+    """
+    Dual-mode autosaver:
+    1. Idle-based: Saves active tab 10s after inactivity
+    2. Interval-based: Saves ALL tabs every 5 minutes
+    """
     
     def __init__(self):
-        self.timer = None
+        self.idle_timer = None
         self.last_change = 0
-        self.pending_save = False
+        self.pending_idle_save = False
+        self.interval_timer = None
         self.lock = threading.Lock()
-        self.cycle_count = 0
         self.running = False
+        self.maintenance_count = 0
     
     def on_text_changed(self, args):
-        """Called on every text change."""
+        """Called on every text change - triggers idle save."""
         with self.lock:
             self.last_change = time.time()
-            self.pending_save = True
+            self.pending_idle_save = True
             
-            if self.timer:
-                self.timer.cancel()
+            if self.idle_timer:
+                self.idle_timer.cancel()
             
             idle_time = get_idle_time()
-            self.timer = threading.Timer(idle_time, self._check_and_save)
-            self.timer.daemon = True
-            self.timer.start()
+            self.idle_timer = threading.Timer(idle_time, self._idle_save)
+            self.idle_timer.daemon = True
+            self.idle_timer.start()
             
             update_statusbar(u"⏳ Sparas om {}s...".format(idle_time))
     
-    def _check_and_save(self):
-        """Check and save if inactive."""
+    def _idle_save(self):
+        """Save active tab after idle time."""
         with self.lock:
-            if not self.pending_save:
+            if not self.pending_idle_save:
                 return
             
             elapsed = time.time() - self.last_change
             idle_time = get_idle_time()
             
             if elapsed >= idle_time:
-                self.pending_save = False
-                self._do_save()
+                self.pending_idle_save = False
+                try:
+                    if save_current_buffer():
+                        generate_index()
+                except Exception as e:
+                    log(u"Idle save error: {}".format(e), "ERROR")
             else:
                 remaining = idle_time - elapsed
-                self.timer = threading.Timer(remaining, self._check_and_save)
-                self.timer.daemon = True
-                self.timer.start()
+                self.idle_timer = threading.Timer(remaining, self._idle_save)
+                self.idle_timer.daemon = True
+                self.idle_timer.start()
     
-    def _do_save(self):
-        """Perform save."""
-        try:
-            save_current_buffer()
-            
-            self.cycle_count += 1
-            if self.cycle_count >= 50:
-                self.cycle_count = 0
-                move_old_backups()
-                
-        except Exception as e:
-            log(u"Idle save error: {}".format(e), "ERROR")
+    def _schedule_interval_save(self):
+        """Schedule next interval save."""
+        if not self.running:
+            return
+        
+        interval = get_interval_time()
+        self.interval_timer = threading.Timer(interval, self._interval_save)
+        self.interval_timer.daemon = True
+        self.interval_timer.start()
     
-    def start(self):
-        """Start idle monitoring."""
-        if self.running:
+    def _interval_save(self):
+        """Save ALL tabs on interval."""
+        if not self.running:
             return
         
         try:
-            editor.callback(self.on_text_changed, [NOTIFICATION.MODIFIED])
-            self.running = True
-            log(u"IdleAutoSaver started ({}s)".format(get_idle_time()))
-            update_statusbar(u"✓ Autosave aktiv")
+            save_all_buffers()
+            
+            self.maintenance_count += 1
+            if self.maintenance_count >= 10:
+                self.maintenance_count = 0
+                move_old_backups()
+                
         except Exception as e:
-            log(u"Error starting: {}".format(e), "ERROR")
+            log(u"Interval save error: {}".format(e), "ERROR")
+        
+        self._schedule_interval_save()
+    
+    def start(self):
+        """Start both idle and interval monitoring."""
+        if self.running:
+            return
+        
+        self.running = True
+        
+        try:
+            editor.callback(self.on_text_changed, [NOTIFICATION.MODIFIED])
+            self._schedule_interval_save()
+            
+            idle = get_idle_time()
+            interval = get_interval_time()
+            
+            log(u"AutoSaver started")
+            log(u"  - Active tab: {}s after idle".format(idle))
+            log(u"  - All tabs: every {}s ({}min)".format(interval, interval // 60))
+            
+            update_statusbar(u"✓ Autosave aktiv")
+            
+        except Exception as e:
+            log(u"Error starting AutoSaver: {}".format(e), "ERROR")
     
     def stop(self):
-        """Stop idle monitoring."""
+        """Stop all monitoring."""
+        self.running = False
+        
         try:
-            self.running = False
-            if self.timer:
-                self.timer.cancel()
-                self.timer = None
+            if self.idle_timer:
+                self.idle_timer.cancel()
+                self.idle_timer = None
+            
+            if self.interval_timer:
+                self.interval_timer.cancel()
+                self.interval_timer = None
+            
             editor.clearCallbacks([NOTIFICATION.MODIFIED])
-            log(u"IdleAutoSaver stopped")
+            log(u"AutoSaver stopped")
+            
         except Exception as e:
-            log(u"Error stopping: {}".format(e), "ERROR")
+            log(u"Error stopping AutoSaver: {}".format(e), "ERROR")
 
 
 # ══════════════════════════════════════════════════════════════════
@@ -1005,16 +1218,21 @@ except NameError:
 except Exception:
     pass
 
-_autosaver = IdleAutoSaver()
+_autosaver = AutoSaver()
 _autosaver.start()
 
 generate_index()
 
-log(u"═" * 50)
+log(u"═" * 60)
 log(u"NPP Autosave v{} loaded".format(__version__))
-log(u"═" * 50)
-log(u"Folder:    {}".format(BASE_DIR))
-log(u"Idle time: {}s".format(get_idle_time()))
-log(u"═" * 50)
-log(u"Commands: manual_save(), open_index(), open_config(), open_folder()")
-log(u"═" * 50)
+log(u"© {} {}".format(datetime.now().year, __author__))
+log(u"═" * 60)
+log(u"Folder:       {}".format(BASE_DIR))
+log(u"Idle time:    {}s (active tab)".format(get_idle_time()))
+log(u"Interval:     {}s / {}min (all tabs)".format(get_interval_time(), get_interval_time() // 60))
+log(u"═" * 60)
+log(u"Saved files   → Original location")
+log(u"New files     → NPP folder (line 1 = filename)")
+log(u"═" * 60)
+log(u"Commands: manual_save(), manual_save_all(), open_index()")
+log(u"═" * 60)
